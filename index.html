@@ -1677,6 +1677,73 @@ html.fp-on .fpw{display:block}
 .sch-sw svg{display:block;width:100%;max-width:64px;height:auto;margin:0 auto 2px}
 .sch-sw span{display:block;font-family:var(--s);font-size:15px;line-height:1.1;color:#7a5a3a;white-space:nowrap;margin:0 -6px}
 </style>
+<style id="gal-css">
+/* ===== Photo gallery slider ===== */
+#gallery{padding:70px 0 64px}
+#gallery .sc,#gallery .cap{padding:0 26px}
+.gal{margin-top:26px}
+.gal-track{
+    display:flex;
+    gap:14px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    --gw:min(72vw,300px);
+    padding:10px calc((100% - var(--gw))/2) 18px;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    cursor:grab;
+    overscroll-behavior-x:contain
+}
+.gal-track::-webkit-scrollbar{display:none}
+.gal-track.drag{cursor:grabbing;scroll-snap-type:none}
+.gal-slide{
+    flex:0 0 var(--gw);
+    margin:0;
+    scroll-snap-align:center;
+    transform:scale(.88);
+    opacity:.55;
+    transition:transform .5s cubic-bezier(.22,1,.36,1),opacity .5s ease
+}
+.gal-slide.act{transform:none;opacity:1}
+.gal-frame{
+    padding:6px;
+    border:1px solid var(--gold);
+    border-radius:150px 150px 16px 16px;
+    background:var(--white);
+    box-shadow:0 14px 32px rgba(107,15,10,.16)
+}
+.gal-frame img{
+    display:block;
+    width:100%;
+    aspect-ratio:3/4;
+    object-fit:cover;
+    object-position:center 30%;
+    border-radius:144px 144px 10px 10px;
+    background:#e9e2d6;
+    -webkit-user-drag:none;
+    user-select:none;
+    pointer-events:none
+}
+.gal-dots{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin-top:4px
+}
+.gal-dots i{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:rgba(184,148,106,.4);
+    transition:width .4s ease,background .4s ease;
+    border-radius:99px
+}
+.gal-dots i.on{width:20px;background:var(--red)}
+@media (prefers-reduced-motion:reduce){
+    .gal-slide{transition:none}
+}
+</style>
 </head>
 
 <body>
@@ -2335,6 +2402,41 @@ html.fp-on .fpw{display:block}
             </div>
 
         </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     PHOTO GALLERY (swipe left / right)
+     ========================================================= -->
+
+<section id="gallery">
+
+    <div class="sc rv">
+        Our Moments
+    </div>
+
+    <div class="cap rv" style="margin-top:10px">
+        Swipe to see our story
+    </div>
+
+    <div class="gal rv" id="gal">
+
+        <div class="gal-track" id="galTrack">
+
+            <figure class="gal-slide"><div class="gal-frame"><img src="photos/photo1.jpg" alt="Abdelrahman &amp; Malak" loading="lazy" draggable="false"></div></figure>
+            <figure class="gal-slide"><div class="gal-frame"><img src="photos/photo2.jpg" alt="Abdelrahman &amp; Malak" loading="lazy" draggable="false"></div></figure>
+            <figure class="gal-slide"><div class="gal-frame"><img src="photos/photo3.jpg" alt="Abdelrahman &amp; Malak" loading="lazy" draggable="false"></div></figure>
+            <figure class="gal-slide"><div class="gal-frame"><img src="photos/photo4.jpg" alt="Abdelrahman &amp; Malak" loading="lazy" draggable="false"></div></figure>
+            <figure class="gal-slide"><div class="gal-frame"><img src="photos/photo5.jpg" alt="Abdelrahman &amp; Malak" loading="lazy" draggable="false"></div></figure>
+            <figure class="gal-slide"><div class="gal-frame"><img src="photos/photo6.jpg" alt="Abdelrahman &amp; Malak" loading="lazy" draggable="false"></div></figure>
+            <figure class="gal-slide"><div class="gal-frame"><img src="photos/photo7.jpg" alt="Abdelrahman &amp; Malak" loading="lazy" draggable="false"></div></figure>
+
+        </div>
+
+        <div class="gal-dots" id="galDots" aria-hidden="true"></div>
 
     </div>
 
@@ -4614,6 +4716,71 @@ var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isInters
 o.observe(f);
 setTimeout(function(){f.classList.add('in')},60000)
 }catch(e){var g=document.getElementById('skf');if(g){g.classList.remove('pre')}}})();
+</script>
+
+<script>
+/* Photo gallery: swipe on touch screens, drag with the mouse, dots follow the slide */
+(function(){
+    var track = document.getElementById('galTrack');
+    var dotsBox = document.getElementById('galDots');
+    if(!track || !dotsBox) return;
+
+    var slides = Array.prototype.slice.call(track.children);
+    var dots = slides.map(function(){
+        var d = document.createElement('i');
+        dotsBox.appendChild(d);
+        return d;
+    });
+
+    var current = -1;
+
+    function update(){
+        var c = track.scrollLeft + track.clientWidth / 2;
+        var best = 0, bestD = Infinity;
+        slides.forEach(function(s,i){
+            var m = s.offsetLeft + s.offsetWidth / 2;
+            var d = Math.abs(m - c);
+            if(d < bestD){ bestD = d; best = i; }
+        });
+        if(best === current) return;
+        current = best;
+        slides.forEach(function(s,i){ s.classList.toggle('act', i === best); });
+        dots.forEach(function(d,i){ d.classList.toggle('on', i === best); });
+    }
+
+    track.addEventListener('scroll', function(){ requestAnimationFrame(update); }, {passive:true});
+    window.addEventListener('resize', update);
+    update();
+
+    /* mouse drag (touch already scrolls natively) */
+    var down = false, startX = 0, startLeft = 0;
+
+    track.addEventListener('pointerdown', function(e){
+        if(e.pointerType !== 'mouse') return;
+        down = true;
+        startX = e.clientX;
+        startLeft = track.scrollLeft;
+        track.classList.add('drag');
+        track.setPointerCapture(e.pointerId);
+    });
+
+    track.addEventListener('pointermove', function(e){
+        if(!down) return;
+        track.scrollLeft = startLeft - (e.clientX - startX);
+    });
+
+    function end(){
+        if(!down) return;
+        down = false;
+        track.classList.remove('drag');
+        /* snap to the nearest slide */
+        var s = slides[current];
+        if(s) track.scrollTo({left: s.offsetLeft - (track.clientWidth - s.offsetWidth) / 2, behavior:'smooth'});
+    }
+
+    track.addEventListener('pointerup', end);
+    track.addEventListener('pointercancel', end);
+})();
 </script>
 
 </body>
